@@ -792,4 +792,119 @@ body {
       text-align: center;
     }
   }
+  /* Custom Alert Modal Styles */
+  .custom-alert-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    font-family: inherit;
+  }
+
+  .custom-alert-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .custom-alert-content {
+    background: var(--secondary-dark);
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    border: 2px solid var(--primary-cyan);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease;
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.8) translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .custom-alert-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .custom-alert-body {
+    margin: 20px 0;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .custom-alert-footer {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+  }
+
+  .custom-alert-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    min-width: 100px;
+  }
+
+  .custom-alert-cancel {
+    background: var(--primary-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+
+  .custom-alert-cancel:hover {
+    background: var(--hover-dark);
+    transform: translateY(-2px);
+  }
+
+  .custom-alert-confirm {
+    background: linear-gradient(135deg, var(--error), #d32f2f);
+    color: white;
+  }
+
+  .custom-alert-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
+  }
+
+  /* Responsive design for modal */
+  @media (max-width: 480px) {
+    .custom-alert-content {
+      padding: 20px;
+      margin: 10px;
+    }
+
+    .custom-alert-footer {
+      flex-direction: column;
+    }
+
+    .custom-alert-btn {
+      width: 100%;
+    }
+  }
 }
