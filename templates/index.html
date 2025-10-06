@@ -1,0 +1,267 @@
+{% extends "base.html" %} {% block content %}
+<div class="dashboard">
+  <div class="container">
+    <div class="header-section">
+      <h1>Download Videos & Audio</h1>
+      <p>Paste your YouTube or Instagram link below to download</p>
+    </div>
+
+    <div class="platform-tabs">
+      <button class="tab-btn active" data-platform="youtube">
+        <i class="fab fa-youtube"></i> YouTube
+      </button>
+      <button class="tab-btn" data-platform="instagram">
+        <i class="fab fa-instagram"></i> Instagram
+      </button>
+    </div>
+
+    <div class="download-section">
+      <div class="url-input-container">
+        <input
+          type="text"
+          id="videoUrl"
+          placeholder="Paste video link here..."
+          class="url-input"
+        />
+        <button id="previewBtn" class="preview-btn">
+          <i class="fas fa-eye"></i> Preview
+        </button>
+      </div>
+
+      <div class="media-type-tabs">
+        <button class="media-tab-btn active" data-media-type="mp4">
+          <i class="fas fa-video"></i> MP4 Video
+        </button>
+        <button class="media-tab-btn" data-media-type="mp3">
+          <i class="fas fa-music"></i> MP3 Audio
+        </button>
+      </div>
+
+      <!-- Quality Selector Section -->
+      <div id="qualitySelector" class="quality-selector hidden">
+        <h4>Select Quality:</h4>
+        <div id="qualityOptions" class="quality-options">
+          <!-- Quality options will be dynamically populated here -->
+        </div>
+      </div>
+
+      <div id="videoPreview" class="video-preview hidden">
+        <div class="preview-content">
+          <img
+            id="previewThumbnail"
+            src=""
+            alt="Video thumbnail"
+            class="preview-thumbnail"
+          />
+          <div class="preview-info">
+            <h3 id="previewTitle">Video Title</h3>
+            <div class="preview-meta">
+              <span id="previewUploader">Uploader</span>
+              <span id="previewDuration">Duration</span>
+              <span id="previewViews">Views</span>
+            </div>
+            <div class="preview-quality-info">
+              <span id="previewFileSize">File size: Calculating...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="downloadBtn" class="download-btn" disabled>
+        <i class="fas fa-download"></i> Download
+      </button>
+
+      <div id="downloadProgress" class="progress-container hidden">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <span class="progress-text">Processing...</span>
+      </div>
+    </div>
+
+    <div class="recent-downloads">
+      <h2>Recent Downloads</h2>
+      <div id="recentDownloadsList" class="downloads-list">
+        <!-- Recent downloads will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .quality-selector {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  .quality-selector h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
+  }
+
+  .quality-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .quality-option {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #495057;
+  }
+
+  .quality-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+  }
+
+  .quality-option.selected {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+
+  .quality-option:disabled {
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    border-color: #dee2e6;
+  }
+
+  .preview-quality-info {
+    margin-top: 10px;
+    padding: 8px;
+    background: #e7f3ff;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #0066cc;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .quality-options {
+      flex-direction: column;
+    }
+
+    .quality-option {
+      text-align: center;
+    }
+  }
+</style>
+
+<script>
+  // JavaScript to handle quality selection
+  document.addEventListener("DOMContentLoaded", function () {
+    let currentQuality = "best";
+
+    // Function to populate quality options
+    function populateQualityOptions(qualityOptions) {
+      const qualityContainer = document.getElementById("qualityOptions");
+      const qualitySelector = document.getElementById("qualitySelector");
+
+      if (!qualityOptions || qualityOptions.length === 0) {
+        qualitySelector.classList.add("hidden");
+        return;
+      }
+
+      qualityContainer.innerHTML = "";
+
+      qualityOptions.forEach((option) => {
+        const qualityBtn = document.createElement("button");
+        qualityBtn.type = "button";
+        qualityBtn.className = "quality-option";
+        qualityBtn.textContent = option.label;
+        qualityBtn.dataset.value = option.value;
+
+        if (option.value === currentQuality) {
+          qualityBtn.classList.add("selected");
+        }
+
+        qualityBtn.addEventListener("click", function () {
+          // Remove selected class from all options
+          document.querySelectorAll(".quality-option").forEach((btn) => {
+            btn.classList.remove("selected");
+          });
+
+          // Add selected class to clicked option
+          this.classList.add("selected");
+          currentQuality = this.dataset.value;
+
+          // Update download button with quality info
+          updateDownloadButton();
+        });
+
+        qualityContainer.appendChild(qualityBtn);
+      });
+
+      qualitySelector.classList.remove("hidden");
+    }
+
+    function updateDownloadButton() {
+      const downloadBtn = document.getElementById("downloadBtn");
+      const mediaType = document.querySelector(".media-tab-btn.active").dataset
+        .mediaType;
+      const platform =
+        document.querySelector(".tab-btn.active").dataset.platform;
+
+      // You can update the button text to show selected quality if needed
+      // downloadBtn.innerHTML = `<i class="fas fa-download"></i> Download (${currentQuality})`;
+    }
+
+    // Update quality options when media type changes
+    document.querySelectorAll(".media-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const mediaType = this.dataset.mediaType;
+        const platform =
+          document.querySelector(".tab-btn.active").dataset.platform;
+
+        // Reset to default quality when media type changes
+        currentQuality = "best";
+
+        // You can fetch quality options based on media type and platform here
+        // This would typically be called after video preview
+      });
+    });
+
+    // Update quality options when platform changes
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const platform = this.dataset.platform;
+        const mediaType = document.querySelector(".media-tab-btn.active")
+          .dataset.mediaType;
+
+        // Reset to default quality when platform changes
+        currentQuality = "best";
+
+        // Hide quality selector until new preview
+        document.getElementById("qualitySelector").classList.add("hidden");
+      });
+    });
+
+    // Function to get current quality (for use in download function)
+    window.getCurrentQuality = function () {
+      return currentQuality;
+    };
+
+    // Function to set quality options (to be called from preview response)
+    window.setQualityOptions = function (options) {
+      populateQualityOptions(options);
+    };
+
+    // Function to hide quality selector
+    window.hideQualitySelector = function () {
+      document.getElementById("qualitySelector").classList.add("hidden");
+    };
+  });
+</script>
+{% endblock %}
