@@ -13,6 +13,7 @@ from models import db, User, Download
 from utils.downloader import VideoDownloader
 from utils.video_processor import VideoProcessor
 from config import Config
+from flask_migrate import Migrate
 from sqlalchemy import func
 
 app = Flask(__name__)
@@ -20,6 +21,7 @@ app.config.from_object(Config)
 
 # Initialize database
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # Custom formatters
 def file_size_formatter(view, value):
@@ -440,7 +442,7 @@ def download():
             return jsonify({'success': False, 'error': validation['error']})
         
         print("Starting download process...")
-        result = VideoDownloader.download_media(url, media_type, platform, quality, format_type)
+        result = VideoDownloader.download_media(url, media_type, platform, quality)
         
         if result and result.get('success'):
             # Sanitize filename before saving to database
