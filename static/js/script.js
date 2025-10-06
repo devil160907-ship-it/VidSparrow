@@ -542,11 +542,54 @@ class VidSparrow {
   }
 
   async deleteDownload(downloadId) {
-    if (
-      !confirm("Are you sure you want to delete this download from history?")
-    ) {
-      return;
-    }
+    // Create custom alert modal for single delete
+    const modal = document.createElement("div");
+    modal.className = "custom-alert-modal";
+    modal.innerHTML = `
+    <div class="custom-alert-overlay">
+      <div class="custom-alert-content">
+        <div class="custom-alert-header">
+          <i class="fas fa-trash-alt" style="color: #ff9800; font-size: 2rem; margin-bottom: 15px;"></i>
+          <h3>Delete Download</h3>
+        </div>
+        <div class="custom-alert-body">
+          <p>Are you sure you want to delete this download from history?</p>
+        </div>
+        <div class="custom-alert-footer">
+          <button class="custom-alert-btn custom-alert-cancel">Cancel</button>
+          <button class="custom-alert-btn custom-alert-confirm" style="background: var(--error);">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners for custom alert buttons
+    const confirmBtn = modal.querySelector(".custom-alert-confirm");
+    const cancelBtn = modal.querySelector(".custom-alert-cancel");
+
+    const confirmed = await new Promise((resolve) => {
+      confirmBtn.onclick = () => {
+        modal.remove();
+        resolve(true);
+      };
+
+      cancelBtn.onclick = () => {
+        modal.remove();
+        resolve(false);
+      };
+
+      // Close on overlay click
+      modal.querySelector(".custom-alert-overlay").onclick = (e) => {
+        if (e.target === e.currentTarget) {
+          modal.remove();
+          resolve(false);
+        }
+      };
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/delete-download/${downloadId}`, {
@@ -571,13 +614,55 @@ class VidSparrow {
   }
 
   async clearAllDownloads() {
-    if (
-      !confirm(
-        "Are you sure you want to clear ALL download history? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+    // Create custom alert modal for clear all
+    const modal = document.createElement("div");
+    modal.className = "custom-alert-modal";
+    modal.innerHTML = `
+    <div class="custom-alert-overlay">
+      <div class="custom-alert-content">
+        <div class="custom-alert-header">
+          <i class="fas fa-exclamation-triangle" style="color: #ff9800; font-size: 2rem; margin-bottom: 15px;"></i>
+          <h3>Clear All History</h3>
+        </div>
+        <div class="custom-alert-body">
+          <p>Are you sure you want to clear ALL download history?</p>
+          <p style="color: var(--error); font-weight: 600; margin-top: 10px;">This action cannot be undone!</p>
+        </div>
+        <div class="custom-alert-footer">
+          <button class="custom-alert-btn custom-alert-cancel">Cancel</button>
+          <button class="custom-alert-btn custom-alert-confirm" style="background: var(--error);">Clear All</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners for custom alert buttons
+    const confirmBtn = modal.querySelector(".custom-alert-confirm");
+    const cancelBtn = modal.querySelector(".custom-alert-cancel");
+
+    const confirmed = await new Promise((resolve) => {
+      confirmBtn.onclick = () => {
+        modal.remove();
+        resolve(true);
+      };
+
+      cancelBtn.onclick = () => {
+        modal.remove();
+        resolve(false);
+      };
+
+      // Close on overlay click
+      modal.querySelector(".custom-alert-overlay").onclick = (e) => {
+        if (e.target === e.currentTarget) {
+          modal.remove();
+          resolve(false);
+        }
+      };
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch("/clear-all-downloads", {
@@ -600,7 +685,6 @@ class VidSparrow {
       this.showError("Network error. Please try again.");
     }
   }
-
   addClearAllButton() {
     const container = document.getElementById("recentDownloadsList");
     if (!container) return;
@@ -797,7 +881,6 @@ class VidSparrow {
   }
 }
 
-// Add CSS for toast animations, delete buttons, and quality selector
 const style = document.createElement("style");
 style.textContent = `
     @keyframes slideIn {
@@ -962,7 +1045,107 @@ style.textContent = `
         min-width: 0;
     }
 
-    /* Responsive design for quality selector */
+    /* Custom Alert Modal Styles */
+    .custom-alert-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        font-family: inherit;
+    }
+
+    .custom-alert-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .custom-alert-content {
+        background: var(--secondary-dark);
+        border-radius: 15px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        border: 2px solid var(--primary-cyan);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8) translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .custom-alert-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .custom-alert-body {
+        margin: 20px 0;
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+
+    .custom-alert-footer {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .custom-alert-btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        min-width: 100px;
+    }
+
+    .custom-alert-cancel {
+        background: var(--primary-dark);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .custom-alert-cancel:hover {
+        background: var(--hover-dark);
+        transform: translateY(-2px);
+    }
+
+    .custom-alert-confirm {
+        background: linear-gradient(135deg, var(--error), #d32f2f);
+        color: white;
+    }
+
+    .custom-alert-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
+    }
+
+    /* Responsive design for quality selector and modals */
     @media (max-width: 768px) {
         .quality-options {
             flex-direction: column;
@@ -970,6 +1153,21 @@ style.textContent = `
         
         .quality-option {
             text-align: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .custom-alert-content {
+            padding: 20px;
+            margin: 10px;
+        }
+        
+        .custom-alert-footer {
+            flex-direction: column;
+        }
+        
+        .custom-alert-btn {
+            width: 100%;
         }
     }
 `;
