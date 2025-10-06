@@ -519,160 +519,240 @@
       function deleteDownload(downloadId) {
         if (activeRequests.has(downloadId)) return;
 
-        if (
-          !confirm(
-            "Are you sure you want to delete this download from history?"
-          )
-        ) {
-          return;
-        }
+        // Create custom alert modal for single delete
+        const modal = document.createElement("div");
+        modal.className = "custom-alert-modal";
+        modal.innerHTML = `
+      <div class="custom-alert-overlay">
+        <div class="custom-alert-content">
+          <div class="custom-alert-header">
+            <i class="fas fa-trash-alt" style="color: #ff9800; font-size: 2rem; margin-bottom: 15px;"></i>
+            <h3>Delete Download</h3>
+          </div>
+          <div class="custom-alert-body">
+            <p>Are you sure you want to delete this download from history?</p>
+          </div>
+          <div class="custom-alert-footer">
+            <button class="custom-alert-btn custom-alert-cancel">Cancel</button>
+            <button class="custom-alert-btn custom-alert-confirm btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
 
-        const button = event.target.closest(".delete-btn") || event.target;
-        const originalText = button.innerHTML;
+        document.body.appendChild(modal);
 
-        // Show loading state
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-        button.disabled = true;
-        activeRequests.add(downloadId);
+        // Add event listeners for custom alert buttons
+        const confirmBtn = modal.querySelector(".custom-alert-confirm");
+        const cancelBtn = modal.querySelector(".custom-alert-cancel");
 
-        fetch(`/delete-download/${downloadId}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => {
-            // Check if response is JSON
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-              throw new Error("Server returned non-JSON response");
+        return new Promise((resolve) => {
+          confirmBtn.onclick = () => {
+            modal.remove();
+            resolve(true);
+          };
+
+          cancelBtn.onclick = () => {
+            modal.remove();
+            resolve(false);
+          };
+
+          // Close on overlay click
+          modal.querySelector(".custom-alert-overlay").onclick = (e) => {
+            if (e.target === e.currentTarget) {
+              modal.remove();
+              resolve(false);
             }
-            return response.json();
+          };
+        }).then((confirmed) => {
+          if (!confirmed) return;
+
+          const button = event.target.closest(".delete-btn") || event.target;
+          const originalText = button.innerHTML;
+
+          // Show loading state
+          button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+          button.disabled = true;
+          activeRequests.add(downloadId);
+
+          fetch(`/delete-download/${downloadId}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
           })
-          .then((data) => {
-            if (data.success) {
-              showToast("Download deleted successfully", "success");
-              // Remove the item from UI
-              const downloadItem = button.closest(".download-item");
-              if (downloadItem) {
-                downloadItem.style.opacity = "0";
-                downloadItem.style.transform = "translateX(100px)";
-                setTimeout(() => {
-                  downloadItem.remove();
-                  // Check if no downloads left
-                  checkEmptyState();
-                }, 300);
+            .then((response) => {
+              // Check if response is JSON
+              const contentType = response.headers.get("content-type");
+              if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Server returned non-JSON response");
               }
-            } else {
-              showToast(data.error || "Failed to delete download", "error");
+              return response.json();
+            })
+            .then((data) => {
+              if (data.success) {
+                showToast("Download deleted successfully", "success");
+                // Remove the item from UI
+                const downloadItem = button.closest(".download-item");
+                if (downloadItem) {
+                  downloadItem.style.opacity = "0";
+                  downloadItem.style.transform = "translateX(100px)";
+                  setTimeout(() => {
+                    downloadItem.remove();
+                    // Check if no downloads left
+                    checkEmptyState();
+                  }, 300);
+                }
+              } else {
+                showToast(data.error || "Failed to delete download", "error");
+                // Restore button
+                button.innerHTML = originalText;
+                button.disabled = false;
+              }
+            })
+            .catch((error) => {
+              console.error("Delete error:", error);
+              if (error.message.includes("non-JSON")) {
+                showToast(
+                  "Authentication error. Please refresh the page and login again.",
+                  "error"
+                );
+              } else {
+                showToast(
+                  "Network error. Please check your connection.",
+                  "error"
+                );
+              }
               // Restore button
               button.innerHTML = originalText;
               button.disabled = false;
-            }
-          })
-          .catch((error) => {
-            console.error("Delete error:", error);
-            if (error.message.includes("non-JSON")) {
-              showToast(
-                "Authentication error. Please refresh the page and login again.",
-                "error"
-              );
-            } else {
-              showToast(
-                "Network error. Please check your connection.",
-                "error"
-              );
-            }
-            // Restore button
-            button.innerHTML = originalText;
-            button.disabled = false;
-          })
-          .finally(() => {
-            activeRequests.delete(downloadId);
-          });
+            })
+            .finally(() => {
+              activeRequests.delete(downloadId);
+            });
+        });
       }
 
       function clearAllHistory() {
         if (activeRequests.has("clear-all")) return;
 
-        if (
-          !confirm(
-            "Are you sure you want to clear ALL download history? This action cannot be undone."
-          )
-        ) {
-          return;
-        }
+        // Create custom alert modal for clear all
+        const modal = document.createElement("div");
+        modal.className = "custom-alert-modal";
+        modal.innerHTML = `
+      <div class="custom-alert-overlay">
+        <div class="custom-alert-content">
+          <div class="custom-alert-header">
+            <i class="fas fa-exclamation-triangle" style="color: #ff9800; font-size: 2rem; margin-bottom: 15px;"></i>
+            <h3>Clear All History</h3>
+          </div>
+          <div class="custom-alert-body">
+            <p>Are you sure you want to clear ALL download history?</p>
+            <p style="color: var(--error); font-weight: 600; margin-top: 10px;">This action cannot be undone!</p>
+          </div>
+          <div class="custom-alert-footer">
+            <button class="custom-alert-btn custom-alert-cancel">Cancel</button>
+            <button class="custom-alert-btn custom-alert-confirm btn-danger">Clear All</button>
+          </div>
+        </div>
+      </div>
+    `;
 
-        const button = event.target.closest(".btn-danger") || event.target;
-        const originalText = button.innerHTML;
+        document.body.appendChild(modal);
 
-        // Show loading state
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
-        button.disabled = true;
-        activeRequests.add("clear-all");
+        // Add event listeners for custom alert buttons
+        const confirmBtn = modal.querySelector(".custom-alert-confirm");
+        const cancelBtn = modal.querySelector(".custom-alert-cancel");
 
-        fetch("/clear-all-downloads", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => {
-            // Check if response is JSON
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-              throw new Error("Server returned non-JSON response");
+        return new Promise((resolve) => {
+          confirmBtn.onclick = () => {
+            modal.remove();
+            resolve(true);
+          };
+
+          cancelBtn.onclick = () => {
+            modal.remove();
+            resolve(false);
+          };
+
+          // Close on overlay click
+          modal.querySelector(".custom-alert-overlay").onclick = (e) => {
+            if (e.target === e.currentTarget) {
+              modal.remove();
+              resolve(false);
             }
-            return response.json();
+          };
+        }).then((confirmed) => {
+          if (!confirmed) return;
+
+          const button = event.target.closest(".btn-danger") || event.target;
+          const originalText = button.innerHTML;
+
+          // Show loading state
+          button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+          button.disabled = true;
+          activeRequests.add("clear-all");
+
+          fetch("/clear-all-downloads", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
           })
-          .then((data) => {
-            if (data.success) {
-              showToast(
-                data.message || "All downloads cleared successfully",
-                "success"
-              );
-              // Clear the downloads list
-              const downloadsList = document.querySelector(".downloads-list");
-              if (downloadsList) {
-                downloadsList.innerHTML = `
-                    <div class="no-downloads">
-                        <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
-                        <h3>No downloads yet</h3>
-                        <p>Start downloading videos and they will appear here!</p>
-                    </div>
-                `;
+            .then((response) => {
+              const contentType = response.headers.get("content-type");
+              if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Server returned non-JSON response");
               }
-              // Update statistics
-              setTimeout(() => {
-                location.reload();
-              }, 2000);
-            } else {
-              showToast(data.error || "Failed to clear downloads", "error");
-              // Restore button
+              return response.json();
+            })
+            .then((data) => {
+              if (data.success) {
+                showToast(
+                  data.message || "All downloads cleared successfully",
+                  "success"
+                );
+                const downloadsList = document.querySelector(".downloads-list");
+                if (downloadsList) {
+                  downloadsList.innerHTML = `
+                <div class="no-downloads">
+                    <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                    <h3>No downloads yet</h3>
+                    <p>Start downloading videos and they will appear here!</p>
+                </div>
+            `;
+                }
+                setTimeout(() => {
+                  location.reload();
+                }, 2000);
+              } else {
+                showToast(data.error || "Failed to clear downloads", "error");
+                button.innerHTML = originalText;
+                button.disabled = false;
+              }
+            })
+            .catch((error) => {
+              console.error("Clear all error:", error);
+              if (error.message.includes("non-JSON")) {
+                showToast(
+                  "Authentication error. Please refresh the page and login again.",
+                  "error"
+                );
+              } else {
+                showToast(
+                  "Network error. Please check your connection.",
+                  "error"
+                );
+              }
               button.innerHTML = originalText;
               button.disabled = false;
-            }
-          })
-          .catch((error) => {
-            console.error("Clear all error:", error);
-            if (error.message.includes("non-JSON")) {
-              showToast(
-                "Authentication error. Please refresh the page and login again.",
-                "error"
-              );
-            } else {
-              showToast(
-                "Network error. Please check your connection.",
-                "error"
-              );
-            }
-            // Restore button
-            button.innerHTML = originalText;
-            button.disabled = false;
-          })
-          .finally(() => {
-            activeRequests.delete("clear-all");
-          });
+            })
+            .finally(() => {
+              activeRequests.delete("clear-all");
+            });
+        });
       }
 
       function refreshDownloads() {
@@ -685,12 +765,12 @@
 
         if (downloadItems.length === 0) {
           downloadsList.innerHTML = `
-            <div class="no-downloads">
-                <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
-                <h3>No downloads yet</h3>
-                <p>Start downloading videos and they will appear here!</p>
-            </div>
-        `;
+        <div class="no-downloads">
+            <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+            <h3>No downloads yet</h3>
+            <p>Start downloading videos and they will appear here!</p>
+        </div>
+    `;
         }
       }
 
@@ -704,44 +784,44 @@
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
         toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fas ${
-              type === "error" ? "fa-exclamation-circle" : "fa-check-circle"
-            }"></i>
-            <span>${message}</span>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+      <div class="toast-content">
+          <i class="fas ${
+            type === "error" ? "fa-exclamation-circle" : "fa-check-circle"
+          }"></i>
+          <span>${message}</span>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
     `;
 
         // Add styles
         toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${
-          type === "error"
-            ? "#dc3545"
-            : type === "success"
-            ? "#28a745"
-            : "#17a2b8"
-        };
-        color: white;
-        padding: 15px 20px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 10000;
-        max-width: 400px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease;
-        border: 1px solid ${
-          type === "error"
-            ? "#dc3545"
-            : type === "success"
-            ? "#28a745"
-            : "#17a2b8"
-        };
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${
+        type === "error"
+          ? "#dc3545"
+          : type === "success"
+          ? "#28a745"
+          : "#17a2b8"
+      };
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10000;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+      border: 1px solid ${
+        type === "error"
+          ? "#dc3545"
+          : type === "success"
+          ? "#28a745"
+          : "#17a2b8"
+      };
     `;
 
         document.body.appendChild(toast);
@@ -754,44 +834,161 @@
         }, 5000);
       }
 
-      // Add CSS for toast animations
-      const toastStyles = document.createElement("style");
-      toastStyles.textContent = `
+      // Add CSS for custom modals and toast animations
+      const customStyles = document.createElement("style");
+      customStyles.textContent = `
+    /* Custom Alert Modal Styles */
+    .custom-alert-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10000;
+      font-family: inherit;
+    }
+
+    .custom-alert-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .custom-alert-content {
+      background: var(--secondary-dark);
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      border: 2px solid var(--primary-cyan);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .custom-alert-header h3 {
+      color: white;
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .custom-alert-body {
+      margin: 20px 0;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .custom-alert-footer {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 25px;
+    }
+
+    .custom-alert-btn {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      min-width: 100px;
+    }
+
+    .custom-alert-cancel {
+      background: var(--primary-dark);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .custom-alert-cancel:hover {
+      background: var(--hover-dark);
+      transform: translateY(-2px);
+    }
+
+    .custom-alert-confirm {
+      background: linear-gradient(135deg, var(--error), #d32f2f);
+      color: white;
+    }
+
+    .custom-alert-confirm:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
+    }
+
+    /* Toast Styles */
     @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
     
     .toast-close {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.2rem;
-        cursor: pointer;
-        padding: 0;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: opacity 0.2s ease;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s ease;
     }
     
     .toast-close:hover {
-        opacity: 0.7;
+      opacity: 0.7;
     }
     
     .toast-content {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     
     .download-item {
-        transition: all 0.3s ease;
+      transition: all 0.3s ease;
     }
-`;
-      document.head.appendChild(toastStyles);
+
+    /* Responsive design for modal */
+    @media (max-width: 480px) {
+      .custom-alert-content {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      .custom-alert-footer {
+        flex-direction: column;
+      }
+      
+      .custom-alert-btn {
+        width: 100%;
+      }
+    }
+  `;
+      document.head.appendChild(customStyles);
 
       // Add smooth animations for download items
       document.addEventListener("DOMContentLoaded", function () {
