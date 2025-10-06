@@ -1,4 +1,3 @@
-import platform
 import yt_dlp
 import os
 import logging
@@ -90,69 +89,56 @@ class VideoDownloader:
         
         return base_opts
 
-@staticmethod
-def get_video_info(url):
-    """Get video information for preview including available formats"""
-    try:
-        print(f"Attempting to fetch info for URL: {url}")
-        
-        ydl_opts = {
-            'quiet': False,  # Set to False for debugging
-            'no_warnings': False,
-            'extract_flat': False,
-        }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            print("YoutubeDL instance created, extracting info...")
-            info = ydl.extract_info(url, download=False)
-            print(f"Successfully extracted info: {info.get('title', 'Unknown')}")
-        
-        # Add platform-specific options if needed
-        if platform == 'instagram':
-            ydl_opts.update({
-                'extract_flat': True
-            })
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            
-            # Extract available formats
-            video_formats = []
-            audio_formats = []
-            
-            if 'formats' in info:
-                for fmt in info['formats']:
-                    format_info = {
-                        'format_id': fmt.get('format_id', 'unknown'),
-                        'ext': fmt.get('ext', 'unknown'),
-                        'quality': fmt.get('format_note', 'unknown'),
-                        'filesize': fmt.get('filesize'),
-                        'vcodec': fmt.get('vcodec', 'none'),
-                        'acodec': fmt.get('acodec', 'none'),
-                        'height': fmt.get('height'),
-                        'width': fmt.get('width'),
-                        'fps': fmt.get('fps')
-                    }
-                    
-                    # Categorize as video or audio
-                    if fmt.get('vcodec') != 'none' and fmt.get('acodec') != 'none':
-                        video_formats.append(format_info)
-                    elif fmt.get('acodec') != 'none' and fmt.get('vcodec') == 'none':
-                        audio_formats.append(format_info)
-            
-            return {
-                'title': info.get('title', 'Unknown Title'),
-                'thumbnail': info.get('thumbnail', ''),
-                'duration': info.get('duration', 0),
-                'uploader': info.get('uploader', 'Unknown'),
-                'view_count': info.get('view_count', 0),
-                'video_formats': video_formats,
-                'audio_formats': audio_formats,
-                'success': True
+    @staticmethod
+    def get_video_info(url):
+        """Get video information for preview including available formats"""
+        try:
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,
             }
-    except Exception as e:
-        logger.error(f"Error getting video info: {e}")
-        return {'success': False, 'error': str(e)}
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                # Extract available formats
+                video_formats = []
+                audio_formats = []
+                
+                if 'formats' in info:
+                    for fmt in info['formats']:
+                        format_info = {
+                            'format_id': fmt.get('format_id', 'unknown'),
+                            'ext': fmt.get('ext', 'unknown'),
+                            'quality': fmt.get('format_note', 'unknown'),
+                            'filesize': fmt.get('filesize'),
+                            'vcodec': fmt.get('vcodec', 'none'),
+                            'acodec': fmt.get('acodec', 'none'),
+                            'height': fmt.get('height'),
+                            'width': fmt.get('width'),
+                            'fps': fmt.get('fps')
+                        }
+                        
+                        # Categorize as video or audio
+                        if fmt.get('vcodec') != 'none' and fmt.get('acodec') != 'none':
+                            video_formats.append(format_info)
+                        elif fmt.get('acodec') != 'none' and fmt.get('vcodec') == 'none':
+                            audio_formats.append(format_info)
+                
+                return {
+                    'title': info.get('title', 'Unknown Title'),
+                    'thumbnail': info.get('thumbnail', ''),
+                    'duration': info.get('duration', 0),
+                    'uploader': info.get('uploader', 'Unknown'),
+                    'view_count': info.get('view_count', 0),
+                    'video_formats': video_formats,
+                    'audio_formats': audio_formats,
+                    'success': True
+                }
+        except Exception as e:
+            logger.error(f"Error getting video info: {e}")
+            return {'success': False, 'error': str(e)}
     
     @staticmethod
     def download_media(url, media_type, platform, quality='best'):
